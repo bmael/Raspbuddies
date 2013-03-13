@@ -6,6 +6,9 @@ require_relative 'raspbuddies_protocol'
 class Raspbuddies
   include Bud
   include RaspbuddiesProtocol
+ 
+  
+  SPAM_FREQUENCY = 0.5
 
   def initialize(id, server, opts={})
     @id = id
@@ -17,19 +20,21 @@ class Raspbuddies
     connect <~ [[@server, ip_port, @id]]
   end
   
-  bloom do
+  bloom :rcv do
      mcast <~ stdio do 
-		    sendMsg("coucou")
-		    end
-		    
-     stdio <~ mcast { |m| [logIntoFile(m.val)] } 
-     
+		    sendMsg("coucou", SPAM_FREQUENCY)
+		    end     
+  end
+  
+  bloom :snd do 
+         stdio <~ mcast { |m| [logIntoFile(m.val)] if m.val[0] != @id} # don't log if we are the msg sender.
   end
   
   #TODO : 
   #method to send a message all K ms to another process
-  def sendMsg(msg) 
-      return [@server, [@id, msg]] 
+  def sendMsg(msg, wait_time) 
+      sleep(wait_time)
+      return [@server, [@id, "Hello from "<<@id ]]
   end
   
   #DONE :
