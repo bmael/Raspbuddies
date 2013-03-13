@@ -22,7 +22,7 @@ class Raspbuddies
   
   bloom :rcv do
      mcast <~ stdio do 
-		    sendMsg("coucou", SPAM_FREQUENCY)
+		    sendMsg(SPAM_FREQUENCY)
 		    end     
   end
   
@@ -32,7 +32,7 @@ class Raspbuddies
   
   #TODO : 
   #method to send a message all K ms to another process
-  def sendMsg(msg, wait_time) 
+  def sendMsg(wait_time) 
       sleep(wait_time)
       return [@server, [@id, "Hello from "<<@id ]]
   end
