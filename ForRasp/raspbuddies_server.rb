@@ -7,8 +7,6 @@ class RaspbuddiesServer
   include Bud
   include RaspbuddiesProtocol
 
-  state { table :nodelist }
-
   bloom do
     nodelist <= connect { |c| [c.client, c.id] }
     mcast <~ (mcast * nodelist).pairs { |m,n| [n.key, m.val] }
