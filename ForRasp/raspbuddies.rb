@@ -37,15 +37,32 @@ class Raspbuddies
 #       [i.dst, ip_port, i.payload, i.payload]
 #     }
 #   end
+  
+  ###########################################################################
+  ##								BLOOM LOOP								 ##
+  ###########################################################################
+  
+  # Send a message
   bloom :snd do
      mcast <~ stdio { sendMsg(SPAM_FREQUENCY) }
   end
   
+  # Receive a message
   bloom :rcv do 
-         stdio <~ mcast { |m| [logIntoFile(m.val)] if m.val[0] != @id} # don't log if we are the msg sender
+	stdio <~ mcast { |m| [["LOG",logIntoFile(m.val), "END LOG"]] if m.val[0] != @id} # don't log if we are the msg sender
 # 	 my_qvc <= mcast { |m| LQVC.new([m.m_qvc, Set.new(m.m_entries)]) if m.val[0] != @id}
   end
+  
+  # New clients detected by central server
+  bloom :update_nodelist do
+# 	nodelist <= new_client { |c| [c.val] }
+# 	stdio <~ new_client { |c| [["udpate_client", c.val, "end update client"]] }
+	stdio <~ new_client { |c| [["new client",[printClients(nodelist)]]]}
+  end
    
+  ###########################################################################
+  ##							RUBY METHODS								 ##
+  ###########################################################################
    # Log a message into the file log.
   def logIntoFile(msg)
     File.open("log"<<@id, 'a') {|f| f.write(msg) 
@@ -59,6 +76,10 @@ class Raspbuddies
       return [@server, [@id, "", "Hello from "<<@id, "" ]]
   end
   
+  def printClients(table)
+    return table.inspected
+  end
+  
 end
 
 #TODO : Have to find a solution for the loop to send msg...
@@ -69,6 +90,7 @@ else
   server = (ARGV.length == 2) ? ARGV[1] : RaspbuddiesProtocol::DEFAULT_ADDR
   puts "Server address: #{server}"
   program = Raspbuddies.new(ARGV[0], server, :stdin => $stdin )
+#   program.printClients
   program.run_fg
 end
 

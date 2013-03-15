@@ -11,6 +11,7 @@ module RaspbuddiesProtocol
     channel :mcast
     
     table :nodelist #Contains all clients information
+    channel :new_client
     
     lqvc :my_qvc
     lqvc :next_qvc

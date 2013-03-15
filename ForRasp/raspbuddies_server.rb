@@ -9,6 +9,15 @@ class RaspbuddiesServer
 
   bloom do
     nodelist <= connect { |c| [c.client, c.id] }
+    stdio <~ nodelist.inspected
+	
+	# send new client on channel new_client to all clients
+# 	new_client <~ nodelist.values
+	
+    new_client <~ (nodelist * nodelist).pairs { |m,n| [n.key, m.values]} 
+	stdio <~ nodelist { |c| [["nodelist : ",c.val]]}
+	
+	# send message to all clients
     mcast <~ (mcast * nodelist).pairs { |m,n| [n.key, m.val] }
   end
 end
