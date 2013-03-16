@@ -44,20 +44,25 @@ class Raspbuddies
   
   # Send a message
   bloom :snd do
-     mcast <~ stdio { sendMsg(SPAM_FREQUENCY) }
+		# send message to all clients
+	   mcast <~ stdio { sendMsg(SPAM_FREQUENCY) }
   end
   
   # Receive a message
   bloom :rcv do 
-	stdio <~ mcast { |m| [["LOG",logIntoFile(m.val), "END LOG"]] if m.val[0] != @id} # don't log if we are the msg sender
-# 	 my_qvc <= mcast { |m| LQVC.new([m.m_qvc, Set.new(m.m_entries)]) if m.val[0] != @id}
+	stdio <~ mcast { |m| [["LOG received message", logIntoFile(m.val)]] if m.val[0] != @id} # don't log if we are the msg sender
+
+	stdio <~ mcast { |m| [["Receiving my message"]] if m.val[0] == @id} # advise that you received your message
+	mcast <~ stdio #Throws an exception... have to find a better solution for infinite loop
+	# 	 my_qvc <= mcast { |m| LQVC.new([m.m_qvc, Set.new(m.m_entries)]) if m.val[0] != @id}
   end
   
   # New clients detected by central server
   bloom :update_nodelist do
 # 	nodelist <= new_client { |c| [c.val] }
 # 	stdio <~ new_client { |c| [["udpate_client", c.val, "end update client"]] }
-	stdio <~ new_client { |c| [["new client",[printClients(nodelist)]]]}
+	stdio <~ new_client { |c| [["new client", c.val]]}
+	stdio <~ nodelist{ |c| [["nodelist", c.val]]}
   end
    
   ###########################################################################

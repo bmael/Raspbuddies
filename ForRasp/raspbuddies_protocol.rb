@@ -21,7 +21,7 @@ module RaspbuddiesProtocol
     
   end
 
-  DEFAULT_ADDR = "localhost:12345"
+  DEFAULT_ADDR = "localhost:12346"
 
   bloom :update_qvc do
     # outgoing messages:

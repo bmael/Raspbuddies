@@ -8,17 +8,15 @@ class RaspbuddiesServer
   include RaspbuddiesProtocol
 
   bloom do
-    nodelist <= connect { |c| [c.client, c.id] }
+    nodelist <= connect { |c| [c.client, c.id] } # Store new client persistently
     stdio <~ nodelist.inspected
 	
 	# send new client on channel new_client to all clients
-# 	new_client <~ nodelist.values
-	
     new_client <~ (nodelist * nodelist).pairs { |m,n| [n.key, m.values]} 
-	stdio <~ nodelist { |c| [["nodelist : ",c.val]]}
+	stdio <~ nodelist { |c| [["nodelist : ",c.key, c.val]]}
 	
-	# send message to all clients
-    mcast <~ (mcast * nodelist).pairs { |m,n| [n.key, m.val] }
+	mcast <~ (mcast * nodelist).pairs { |m,n| [n.key, m.val] }
+
   end
 end
 
