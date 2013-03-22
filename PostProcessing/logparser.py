@@ -187,6 +187,7 @@ class GraphLogBuilder:
 class LogAnalyzer:
 	def __init__(self, logEntries):
 		self.logEntries = logEntries
+		self.errors = []
 	
 	def analyze(self, nEntries):
 		graphLogBuilder = GraphLogBuilder()
@@ -218,6 +219,9 @@ class LogAnalyzer:
 				for concurrent in concurrents:
 					self.logEntries.remove(concurrent)
 					self.logEntries.insert(j, concurrent)
+				
+				# Save statistics
+				self.errors.append((len(causals), len(concurrents)))
 
 def printLog(log):
 	for entry in log:
@@ -231,6 +235,8 @@ try:
 	analyzer.analyze(2)
 	print("\nAFTER ANALYZE\n")
 	printLog(logEntries)
+	print("\nSTATS\n")
+	print(analyzer.errors)
 
 except IOError as e:
 	print(e)
