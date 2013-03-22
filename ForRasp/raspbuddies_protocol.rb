@@ -1,5 +1,5 @@
 require_relative "lattice/LQVC"
-require_relative "./delivery"
+require_relative "delivery/delivery"
 
 module RaspbuddiesProtocol
   include DeliveryProtocol
