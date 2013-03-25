@@ -75,7 +75,8 @@ program.run_bg
 	nbMessage -= 1
   end
   
-
+  sleep 10
+  
 program.stop
 
 
