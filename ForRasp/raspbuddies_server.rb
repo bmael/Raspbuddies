@@ -15,7 +15,7 @@ class RaspbuddiesServer
     new_client <~ (nodelist * nodelist).pairs { |m,n| [n.key, m.values]} 
 	stdio <~ nodelist { |c| [["nodelist : ",c.key, c.val]]}
 	
-	mcast <~ (mcast * nodelist).pairs { |m,n| [n.key, m.val] }
+	mcast <~ (mcast * nodelist).pairs { |m,n| [n.key, m.val] } # have to use broadcast cf M2 project
 
   end
 end

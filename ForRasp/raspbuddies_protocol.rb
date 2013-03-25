@@ -7,7 +7,7 @@ module RaspbuddiesProtocol
   
   state do
     channel :connect, [:@addr, :client] => [:id]
-    channel :chn, [:@dst, :src, :ident] => [:payload, :m_qvc, :m_entries]
+    channel :chn, [:@dst, :src, :ident] => [:payload]
     channel :mcast
     
     table :nodelist #Contains all clients information
@@ -21,15 +21,15 @@ module RaspbuddiesProtocol
     
   end
 
-  DEFAULT_ADDR = "localhost:12346"
+  DEFAULT_ADDR = "localhost:12345"
 
   bloom :update_qvc do
     # outgoing messages:
-    next_qvc <= pipe_in { my_qvc.next_qvc(Set.new(@entries)) }
+#     next_qvc <= pipe_in { my_qvc.next_qvc(Set.new(@entries)) }
     # incoming messages:
-    next_qvc <= buf_chosen { |m| LQVC.new([m.m_qvc,Set.new(m.m_entries)]) }
+#     next_qvc <= buf_chosen { |m| LQVC.new([m.m_qvc,Set.new(m.m_entries)]) }
     # update qvc
-    my_qvc <+ next_qvc #(D) mendatory to maintain the order ???
+#     my_qvc <+ next_qvc #(D) mendatory to maintain the order ???
   
 #   miaou <~ next_qvc
 #   next_qvc <= miaou
@@ -41,9 +41,8 @@ module RaspbuddiesProtocol
       [ p.dst,
         p.src,
         p.ident,
-        p.payload,
-        my_qvc.next_qvc(Set.new(@entries)).qvc,
-        @entries ]
+        p.payload
+	  ]
     }
     pipe_sent <= pipe_in
   end
