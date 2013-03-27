@@ -4,34 +4,20 @@
 from collections import deque
 
 class QVV:
-	def __init__(self, vectorClock):
+	def __init__(self, vectorClock, kentries):
 		self.vectorClock = tuple(vectorClock)
+		self.kentries = list(kentries)
 	
-	# self a seulment nEntries qui sont incrémentées de 1
-	# par rapport à other
-	def isDirectlyCausal(self, other, nEntries):
+	def isDirectlyCausal(self, other):
 		if len(self.vectorClock) != len(other.vectorClock):
 			raise ValueError("size of QVVs are not equals")
-			
-		numberOfDiff = 0
-		equal = True
-		raisedByOne = True
 		
-		i = 0
-		while numberOfDiff <= nEntries and (equal or raisedByOne) \
-		and i < len(self.vectorClock):
-			equal = self.vectorClock[i] == other.vectorClock[i]
-			
-			if not equal:
-				raisedByOne = self.vectorClock[i] - 1 == other.vectorClock[i]
-				
-				if raisedByOne :
-					numberOfDiff += 1
-			
-			i += 1
-			
-		return numberOfDiff == nEntries and (equal or raisedByOne)
+		parent = [i for i in self.vectorClock]
+		for k in self.kentries:
+			parent[k] -= 1
 		
+		return tuple(parent) == other.vectorClock
+			
 	def __hash__(self):
 		return hash(self.vectorClock)
 	
@@ -45,9 +31,9 @@ class QVV:
 		return repr(self.vectorClock)
 		
 class LogEntry:
-	def __init__(self, sourceId, vectorClock, messageId, error):
+	def __init__(self, sourceId, vectorClock, kentries, messageId, error):
 		self.sourceId = sourceId
-		self.qvv = QVV(vectorClock)
+		self.qvv = QVV(vectorClock, kentries)
 		self.messageId = messageId
 		self.error = error
 	
@@ -66,12 +52,14 @@ class LogParser:
 			for line in log:
 				fields = line.split(LogParser.FIELD_SEPARATOR)
 				sourceId = int(fields[0].strip())
-				clocks = fields[1].split(LogParser.VECTOR_CLOCK_SEPARATOR)
-				vectorClock = tuple([int(i) for i in clocks])
-				messageId = fields[2].strip()
-				error =  fields[3].strip() == '1'
-				logEntries.append(LogEntry(sourceId, vectorClock, messageId,\
-				error))
+				vectorClock = fields[1].split(LogParser.VECTOR_CLOCK_SEPARATOR)
+				vectorClock = [int(i) for i in vectorClock]
+				kentries = fields[2].split(LogParser.VECTOR_CLOCK_SEPARATOR)
+				kentries = [int(i) for i in kentries]
+				messageId = fields[3].strip()
+				error =  fields[4].strip() == '1'
+				logEntries.append(LogEntry(sourceId, vectorClock, kentries,\
+				messageId, error))
 		
 		return logEntries
 
@@ -153,11 +141,12 @@ class Graph:
 		return pathFound
 	
 class GraphLogBuilder:
-	def build(self, logEntries, nEntries):
-		graphLog = Graph()
+	def build(self, logEntries):
+		if len(logEntries) == 0:
+			raise ValueError("Empty log")
 	
-		# Création du point de départ
-		start = QVV(tuple([0] * len(logEntries[0].qvv)))
+		graphLog = Graph()
+		start = QVV(tuple([0] * len(logEntries[0].qvv)), ())
 		graphLog.addVertex(Vertex(start))
 		withoutParents = []
 	
@@ -167,7 +156,7 @@ class GraphLogBuilder:
 		
 			# Find the parents 
 			for vertex in graphLog:
-				if entry.qvv.isDirectlyCausal(vertex.content, nEntries):
+				if entry.qvv.isDirectlyCausal(vertex.content):
 					graphLog.addEdge(vertex, newVertex)
 					parentFound = True
 			
@@ -179,7 +168,7 @@ class GraphLogBuilder:
 		# Retry for the nodes without parent
 		for withoutParent in withoutParents:
 			for vertex in graphLog:
-				if withoutParent.content.isDirectlyCausal(vertex.content, nEntries):
+				if withoutParent.content.isDirectlyCausal(vertex.content):
 					graphLog.addEdge(vertex, withoutParent)
 	
 		return graphLog
@@ -189,9 +178,10 @@ class LogAnalyzer:
 		self.logEntries = logEntries
 		self.errors = []
 	
-	def analyze(self, nEntries):
+	def analyze(self):
 		graphLogBuilder = GraphLogBuilder()
-		graphLog = graphLogBuilder.build(self.logEntries, nEntries)
+		graphLog = graphLogBuilder.build(self.logEntries)
+		#graphLog.printy()
 		
 		for i, entry in enumerate(self.logEntries):
 			if entry.error:
@@ -200,8 +190,7 @@ class LogAnalyzer:
 				start = Vertex(entry.qvv)
 				j = i - 1
 				
-				while not self.logEntries[j].qvv.isDirectlyCausal(entry.qvv,\
-				nEntries):
+				while not self.logEntries[j].qvv.isDirectlyCausal(entry.qvv):
 					end = Vertex(self.logEntries[j].qvv)
 					
 					if graphLog.isPathExist(start, end):
@@ -232,7 +221,7 @@ try:
 	logEntries = logParser.parse('log1')
 	printLog(logEntries)
 	analyzer = LogAnalyzer(logEntries)
-	analyzer.analyze(2)
+	analyzer.analyze()
 	print("\nAFTER ANALYZE\n")
 	printLog(logEntries)
 	print("\nSTATS\n")
