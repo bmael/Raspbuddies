@@ -2,8 +2,6 @@ require 'rubygems'
 require 'bud'
 require 'backports'	
 require_relative './raspbuddies_protocol'
-require_relative './broadcast/CausalBroadcast'
-require 'socket'
 
 class Raspbuddies
   include Bud
@@ -17,22 +15,7 @@ class Raspbuddies
   end
   
   bootstrap do
-	ipC, portC = ip_port.split(":")
-	@ca = CausalAgent.new("T#{@id}" , 
-	                      :ext_ip => ipC,
-	                      :ext_port => portC.to_i)
-	@ca.run_bg
-	@ca.initProcess
-	
-	ipS, portS = @server.split(":")
-	
     connect <~ [[@server, ip_port, @id]]
-	
-	@ca.sync_do {
-	  @ca.pipe_join <+ [[@server]]
-	}
-	puts "Sleepinf for 5 seconds to wait others clients..."
-	sleep(5)
   end
   
   ############################################################################
@@ -65,15 +48,7 @@ class Raspbuddies
     
   #method to send a message
   def sendMsg() 
-	      var = Bud::MapLattice.new({0=>Bud::MaxLattice.new(0),1=>Bud::MaxLattice.new(0),2=>Bud::MaxLattice.new(1),3=>Bud::MaxLattice.new(0),
-				4=>Bud::MaxLattice.new(0),5=>Bud::MaxLattice.new(1),6=>Bud::MaxLattice.new(0),7=>Bud::MaxLattice.new(0),
-				8=>Bud::MaxLattice.new(0),9=>Bud::MaxLattice.new(4),10=>Bud::MaxLattice.new(0),11=>Bud::MaxLattice.new(0),
-				12=>Bud::MaxLattice.new(0),13=>Bud::MaxLattice.new(5),14=>Bud::MaxLattice.new(0),15=>Bud::MaxLattice.new(1),
-				16=>Bud::MaxLattice.new(0)})
-		  @ca.sync_do{
-			
-	  @ca.bcast_send <+ [[[@server, [ip_port, "", "Hello from " << ip_port, "" ]], [3, var]]]
-			}
+	     
 # 	  @ca.inclock <+ [[0,var]] # Throws an exception like undifined method ??
 # 	  mcast <~ [[@server, [ip_port, "", "Hello from " << ip_port, "" ]]]
 	  stdio <~ [["Sending a message..."]]
@@ -83,9 +58,6 @@ class Raspbuddies
 	return [@server, [ip_port, "", "Hello from " << ip_port, "" ]]
   end
   
-  def stopProcess
-	@ca.stop
-  end
     
 end
 
@@ -117,7 +89,6 @@ program.run_bg
   
   sleep 10
    
-program.stopProcess
    
 puts "------------------------------------------"
 puts "                   End"

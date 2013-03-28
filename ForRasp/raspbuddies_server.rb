@@ -2,21 +2,12 @@ require 'rubygems'
 require 'backports'
 require 'bud'
 require_relative 'raspbuddies_protocol'
-require_relative 'broadcast/CausalBroadcast'
-require 'socket'
+
 
 class RaspbuddiesServer
   include Bud
   include RaspbuddiesProtocol
   
-  bootstrap do
-	@ca = CausalAgent.new("T0" , 
-	                      :ext_ip => ip,
-	                      :ext_port => port)
-	@ca.run_bg
-	@ca.initProcess
-	
-  end
   
   bloom do
     nodelist <= connect { |c| [c.client, c.id] } # Store new client persistently
@@ -30,7 +21,7 @@ class RaspbuddiesServer
   end
   
   def stopProcess
-	@ca.stop
+	stop
   end
   
 end

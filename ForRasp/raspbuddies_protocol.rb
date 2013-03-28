@@ -1,12 +1,7 @@
 require_relative "lattice/LQVC"
-require_relative "delivery/causal"
-require_relative "broadcast/broadcast.rb"
-require_relative "membership/neighbors.rb"
 
 module RaspbuddiesProtocol
-  include DeliveryProtocol
-  include BroadcastProtocol
-  include Neighbors
+
   
   
   state do
