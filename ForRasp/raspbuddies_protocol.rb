@@ -51,7 +51,7 @@ module RaspbuddiesProtocol
     recv_buf <= chn
     buf_chosen <= recv_buf { |m|
       my_qvc.rdy(LQVC.new([m.m_qvc,Set.new(m.m_entries)]),Set.new(@entries))
-      .when_true{ m }
+      when_true{ m }
     }
     recv_buf <- buf_chosen #(D)
 

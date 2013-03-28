@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-	
 
 from collections import deque
@@ -179,9 +179,9 @@ class LogAnalyzer:
 		self.errors = []
 	
 	def analyze(self):
+		del self.errors[:]
 		graphLogBuilder = GraphLogBuilder()
 		graphLog = graphLogBuilder.build(self.logEntries)
-		#graphLog.printy()
 		
 		for i, entry in enumerate(self.logEntries):
 			if entry.error:
