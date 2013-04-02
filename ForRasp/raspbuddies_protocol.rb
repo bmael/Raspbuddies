@@ -22,6 +22,7 @@ class MC
 end
 
 module RaspbuddiesProtocol
+  include StaticMembership
   
   state do
     channel :connect, [:@addr, :client] => [:id]

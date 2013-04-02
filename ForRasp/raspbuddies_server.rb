@@ -16,13 +16,13 @@ class RaspbuddiesServer
   end
   
   bloom do
-    nodelist <= connect { |c|  addMember(c.id, c.client) } # Store new client persistently
+    private_members <= connect { |c|  addMember(c.id, c.client) } # Store new client persistently
 	
 	# send new client on channel new_client to all clients
-    new_client <~ (nodelist * nodelist).pairs { |m,n| [n.key, m.values]}
+    new_client <~ (private_members * private_members).pairs { |m,n| [m.ident, n.host]}
 # 	stdio <~ nodelist { |c| [["New client : #{c.key} #{c.val}"]]}
 	
-	mcast <~ (mcast * nodelist).pairs { |m,n| [n.key, m.val] } # have to use broadcast MC
+# 	mcast <~ (mcast * nodelist).pairs { |m,n| [n.key, m.val] } # have to use broadcast MC
 
   end
   
