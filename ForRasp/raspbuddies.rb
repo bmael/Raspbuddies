@@ -61,7 +61,7 @@ class Raspbuddies
   #method to send a message
   def sendMsg() 
 	  	  mcast <~ [[@server, [ip_port, "", "Hello from " << ip_port, "" ]]]
-# 	  @mc.sync_do{ @mc.mcast_send <+  [[@server, [ip_port, "", "Hello from " << ip_port, "" ]]] }
+# 	  @mc.sync_do{ @mc.mcast_send <+  [[1, [ip_port, "", "Hello from " << ip_port, "" ]]] }
 	  stdio <~ [["Sending a message..."]]
   end
   
