@@ -23,6 +23,7 @@ end
 
 module RaspbuddiesProtocol
   include StaticMembership
+  include BestEffortMulticast
   
   state do
     channel :connect, [:@addr, :client] => [:id]

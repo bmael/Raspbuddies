@@ -10,37 +10,44 @@ class RaspbuddiesServer
   include RaspbuddiesProtocol  
   
   bootstrap do
-	@mc = MC.new
-	startMC
+# 	@mc = MC.new
+# 	startMC
 	
   end
   
   bloom do
-    private_members <= connect { |c|  addMember(c.id, c.client) } # Store new client persistently
-	
+    private_members <= connect { |c|  addMember(c.client, c.id) } # Store new client persistently
+		stdio <~ private_members { displayPrivateMembers } #display the list of clients when there is a new connection
+		
 	# send new client on channel new_client to all clients
-    new_client <~ (private_members * private_members).pairs { |m,n| [n.ident, m.values]}
-	stdio <~ private_members { |c| [["New Client to send : #{c}"]] }
-	stdio <~ (private_members * private_members).pairs { |m,n| [["id : #{n.ident} | host : #{m.values}"]]}
-# 	stdio <~ nodelist { |c| [["New client : #{c.key} #{c.val}"]]}
-	
-# 	mcast <~ (mcast * nodelist).pairs { |m,n| [n.key, m.val] } # have to use broadcast MC
+    new_client <~ (private_members * private_members).pairs { |m,n| [n.ident, m.values] }
+
 
   end
   
-  def addMember(id, addr)
-	@mc.sync_do{	@mc.add_member <+ [[id, addr]] }
-	puts "There are #{@mc.num_members.inspected} clients"
-# 	@mc.sync_do{ @mc.mcast_send <+ [[1, 'foobar']] }
+  def addMember(addr, id)
+# 		@mc.sync_do{	@mc.add_member <+ [[id, addr]] }
 	return [addr, id]
   end
   
   def startMC
-	@mc.run_bg
+# 	@mc.run_bg
+  end
+  
+  def displayPrivateMembers()
+	i=0;
+	puts "\t --------------------------------"
+	puts "\t |   Private members            |"
+	puts "\t --------------------------------"
+	private_members.each do |m|
+	  i += 1
+	  puts "\t | #{i} | #{m} |"
+	end
+	puts "\t -------------------------------"
   end
   
   def stopProcess
-	@mc.stop
+# 	@mc.stop
 	stop
   end
   
@@ -56,12 +63,18 @@ puts "  Server address: #{ip}:#{port}"
 # puts "  Private ip : #{Socket.ip_address_list.detect{|intf| intf.ipv4_private?}.ip_address}"
 puts "------------------------------------------"
 program = RaspbuddiesServer.new(:ip => ip, :port => port.to_i)
-program.run_fg
+program.run_bg
 
-# CTRL + C pour interrompre
+# CTRL + C to stop
    interrupted = false
    
    trap("INT") { interrupted = true }
+   
+#    sleep(3)
+#   program.sync_do {
+# 	program.displayPrivetMembers
+#   }
+
    
    while not interrupted
       sleep(0.5)
