@@ -1,26 +1,44 @@
 require 'rubygems'
 require 'backports'
 require 'bud'
-require_relative 'raspbuddies_protocol'
+
+require_relative './raspbuddies_protocol'
 
 
 class RaspbuddiesServer
   include Bud
-  include RaspbuddiesProtocol
+  include RaspbuddiesProtocol  
   
+  bootstrap do
+	@mc = MC.new
+	startMC
+	
+  end
   
   bloom do
-    nodelist <= connect { |c| [c.client, c.id] } # Store new client persistently
+    nodelist <= connect { |c|  addMember(c.id, c.client) } # Store new client persistently
 	
 	# send new client on channel new_client to all clients
-    new_client <~ (nodelist * nodelist).pairs { |m,n| [n.key, m.values]} 
-	stdio <~ nodelist { |c| [["New client : #{c.key} #{c.val}"]]}
+    new_client <~ (nodelist * nodelist).pairs { |m,n| [n.key, m.values]}
+# 	stdio <~ nodelist { |c| [["New client : #{c.key} #{c.val}"]]}
 	
-# 	mcast <~ (mcast * nodelist).pairs { |m,n| [n.key, m.val] } # have to use broadcast cf M2 project
+	mcast <~ (mcast * nodelist).pairs { |m,n| [n.key, m.val] } # have to use broadcast cf M2 project
 
   end
   
+  def addMember(id, addr)
+	@mc.sync_do{	@mc.add_member <+ [[id, addr]] }
+	puts "There are #{@mc.num_members.inspected} clients"
+# 	@mc.sync_do{ @mc.mcast_send <+ [[1, 'foobar']] }
+	return [addr, id]
+  end
+  
+  def startMC
+	@mc.run_bg
+  end
+  
   def stopProcess
+	@mc.stop
 	stop
   end
   

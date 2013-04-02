@@ -1,8 +1,27 @@
 require_relative "lattice/LQVC"
+require_relative './delivery/multicast'
+
+module TestState
+  include StaticMembership
+
+  state do
+    table :mcast_done_perm, mcast_done.schema
+    table :rcv_perm, [:ident] => [:payload]
+  end
+
+  bloom :mem do
+    mcast_done_perm <= mcast_done
+    rcv_perm <= pipe_out {|r| [r.ident, r.payload]}
+  end
+end
+
+class MC
+  include Bud
+  include TestState
+  include BestEffortMulticast
+end
 
 module RaspbuddiesProtocol
-
-  
   
   state do
     channel :connect, [:@addr, :client] => [:id]

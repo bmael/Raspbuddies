@@ -15,7 +15,15 @@ class Raspbuddies
   end
   
   bootstrap do
+	@mc = MC.new
+	startMC
+	
     connect <~ [[@server, ip_port, @id]]
+	
+	puts "Clients list : #{nodelist.inspected}"
+	
+# 	puts "There are #{@mc.num_members.inspected} clients"
+	
   end
   
   ############################################################################
@@ -26,19 +34,23 @@ class Raspbuddies
   bloom :rcv do 
 	stdio <~ mcast { |m| [["LOG received message #{logIntoFile(m.val)}" ]] if m.val[0]!=ip_port} # don't log if we are the msg sender
 	stdio <~ mcast { |m| [["Receiving my message #{m.val}"]] if m.val[0]==ip_port} # advise that you received your message
-
+		
   end
   
   # New clients detected by central server
   bloom :update_nodelist do
-# 	stdio <~ new_client { |c| [["new client", c.val]]}
-# 	stdio <~ nodelist{ |c| [["nodelist", c.val]]}
+	stdio <~ new_client { |c| [["new client #{c.val} | noidelist : #{nodelist.inspected}"]]}
+	stdio <~ nodelist{ |c| [["nodelist #{c.val}"]]}
   end
    
   ###########################################################################
   ##							RUBY METHODS								 ##
   ###########################################################################
-   # Log a message into the file log.
+  def startMC
+	@mc.run_bg
+  end 
+  
+  # Log a message into the file log.
   #TODO buffer for msg before log it
   def logIntoFile(msg)
     File.open("log/log" << ip_port, 'a') {|f| f.write(msg) 
@@ -48,9 +60,8 @@ class Raspbuddies
     
   #method to send a message
   def sendMsg() 
-	     
-# 	  @ca.inclock <+ [[0,var]] # Throws an exception like undifined method ??
-# 	  mcast <~ [[@server, [ip_port, "", "Hello from " << ip_port, "" ]]]
+	  	  mcast <~ [[@server, [ip_port, "", "Hello from " << ip_port, "" ]]]
+# 	  @mc.sync_do{ @mc.mcast_send <+  [[@server, [ip_port, "", "Hello from " << ip_port, "" ]]] }
 	  stdio <~ [["Sending a message..."]]
   end
   
@@ -58,7 +69,11 @@ class Raspbuddies
 	return [@server, [ip_port, "", "Hello from " << ip_port, "" ]]
   end
   
-    
+  def stopProcess
+	@mc.stop
+	stop
+  end
+  
 end
 
 
@@ -93,7 +108,7 @@ program.run_bg
 puts "------------------------------------------"
 puts "                   End"
 puts "------------------------------------------"
-program.stop
+program.stopProcess
 
 
 
