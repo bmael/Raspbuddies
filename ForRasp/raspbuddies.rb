@@ -35,7 +35,7 @@ class Raspbuddies
   end
   
   bloom :snd do
-		mcast <~ (my_msg * private_members).pairs { |m,n| [n.ident, m.val] }
+		mcast <~ (mcast * private_members).pairs { |m,n| [n.ident, m.val] }
   end
   
   # New clients detected by central server
@@ -86,8 +86,8 @@ class Raspbuddies
     
   #method to send a message
   def sendMsg() 
-	  my_msg <~ [[@server, [ip_port, "", "Hello from " << ip_port, "" ]]]
-# 	  mcast_send <+ [[ip_port, "cc"]]
+	  mcast <~ [[@server, [ip_port, "", "Hello from " << ip_port, "" ]]]
+# 	  mcast_send <+ [[2, "cc"]]
 	  stdio <~ [["Sending a message..."]]
   end
   
