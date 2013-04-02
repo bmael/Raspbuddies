@@ -19,7 +19,9 @@ class RaspbuddiesServer
     private_members <= connect { |c|  addMember(c.id, c.client) } # Store new client persistently
 	
 	# send new client on channel new_client to all clients
-    new_client <~ (private_members * private_members).pairs { |m,n| [m.ident, n.host]}
+    new_client <~ (private_members * private_members).pairs { |m,n| [n.ident, m.values]}
+	stdio <~ private_members { |c| [["New Client to send : #{c}"]] }
+	stdio <~ (private_members * private_members).pairs { |m,n| [["id : #{n.ident} | host : #{m.values}"]]}
 # 	stdio <~ nodelist { |c| [["New client : #{c.key} #{c.val}"]]}
 	
 # 	mcast <~ (mcast * nodelist).pairs { |m,n| [n.key, m.val] } # have to use broadcast MC

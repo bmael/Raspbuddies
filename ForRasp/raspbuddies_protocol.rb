@@ -28,6 +28,7 @@ module RaspbuddiesProtocol
     channel :connect, [:@addr, :client] => [:id]
     channel :chn, [:@dst, :src, :ident] => [:payload]
     channel :mcast
+	channel :my_msg
     
     table :nodelist #Contains all clients information
     channel :new_client

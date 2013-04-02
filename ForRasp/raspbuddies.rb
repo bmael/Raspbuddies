@@ -35,12 +35,13 @@ class Raspbuddies
 	stdio <~ mcast { |m| [["LOG received message #{logIntoFile(m.val)}" ]] if m.val[0]!=ip_port} # don't log if we are the msg sender
 	stdio <~ mcast { |m| [["Receiving my message #{m.val}"]] if m.val[0]==ip_port} # advise that you received your message
 # 	stdio <~ pipe_chan
-		
+	mcast <~ (mcast * private_members).pairs { |m,n| [n.ident, m.val] }
+	stdio <~ mcast
   end
   
   # New clients detected by central server
   bloom :update_nodelist do
-	stdio <~ new_client { |c| [["new client #{addMember(c[1], c[0])} | private_members : #{private_members.inspected}"]]}
+	stdio <~ new_client { |c| [["new client #{addMember(c[1], c[0])}"]] }
 # 	puts "There are #{@mc.num_members.inspected} clients"
 # 	stdio <~ private_members{ |c| [["private_members #{c.val}"]]}
   end
@@ -53,10 +54,10 @@ class Raspbuddies
   end 
   
   def addMember(id, addr)
-	@mc.sync_do{	@mc.add_member <+ [[id, addr]] }
+	@mc.sync_do{	@mc.add_member <+ [[id[1], id[0]]] }
 	puts "There are #{@mc.num_members.inspected} clients"
 # 	@mc.sync_do{ @mc.mcast_send <+ [[1, 'foobar']] }
-	return [addr, id]
+	return [id[0], id[1]]
   end
   
   # Log a message into the file log.
@@ -70,7 +71,7 @@ class Raspbuddies
   #method to send a message
   def sendMsg() 
 # 	  	  mcast <~ [[@server, [ip_port, "", "Hello from " << ip_port, "" ]]]
-# 	  @mc.sync_do{ @mc.mcast_send <+  [[1, [ip_port, "", "Hello from " << ip_port, "" ]]] }
+	  @mc.sync_do{ @mc.mcast_send <+  [[@id, [ip_port, "", "Hello from " << ip_port, "" ]]] }
 	  stdio <~ [["Sending a message..."]]
   end
   
