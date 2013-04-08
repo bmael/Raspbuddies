@@ -21,8 +21,7 @@ class RaspbuddiesServer
 		
 	# send new client on channel new_client to all clients
     new_client <~ (private_members * private_members).pairs { |m,n| [n.ident, m.values] }
-
-
+# 	mcast <~ (mcast * private_members).pairs { |m,n| [n.ident, m.val] }
   end
   
   def addMember(addr, id)
