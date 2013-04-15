@@ -10,6 +10,11 @@ class Raspbuddies
   include RaspbuddiesProtocol
   include QCDelivery
    
+  
+  state do
+    interface input, :i_send, [:dst] => [:payload]
+  end
+  
   def initialize(id, k, server, opts={})
     @id = id
 	@entries = k
@@ -20,10 +25,7 @@ class Raspbuddies
     super opts
   end
   
-  bootstrap do
-# 	@mc = MC.new
-# 	startMC
-# 	
+  bootstrap do	
     connect <~ [[@server, ip_port, @id]]
   end
   
@@ -34,10 +36,7 @@ class Raspbuddies
   # Receive a message
   bloom :rcv do 
 	stdio <~ mcast { |m| [["LOG received message #{logIntoFile(m.val)}" ]] if m.val[0]!=ip_port} # don't log if we are the msg sender
-# 	stdio <~ mcast { |m| [["Receiving my message #{m.val}"]] if m.val[0]==ip_port} # advise that you received your message
-# 	stdio <~ pipe_out { |s| [["inbound message channel : #{s}"]]}
-# 	mcast <~ (mcast * private_members).pairs { |m,n| [n.ident, m.val] }
-# 	mcast <~ (mcast * private_members).pairs { |m,n| [n.host, m.val] }
+	stdio <~ pipe_out
   end
   
   bloom :snd do
@@ -46,28 +45,16 @@ class Raspbuddies
   
   # New clients detected by central server
   bloom :update_nodelist do
-# 	stdio <~ new_client { |c| [["new client #{addMember(c[1], c[0])}"]] }
 	private_members <= new_client {|c| addMember(c[1][0], c[1][1]) }
 	stdio <~ new_client { displayPrivateMembers }
-# 	puts "There are #{@mc.num_members.inspected} clients"
-# 	stdio <~ private_members{ |c| [["private_members #{c.val}"]]}
   end
    
   ###########################################################################
   ##							RUBY METHODS								 ##
   ###########################################################################
-  def startMC
-# 	@mc.run_bg
-  end 
   
   def addMember(addr, id)
-# 	@mc.sync_do{	@mc.add_member <+ [[id, addr]] }
-# 	puts "There are #{@mc.num_members.inspected} clients"
-# 	@mc.sync_do{ @mc.mcast_send <+ [[1, 'foobar']] }
 	return [addr, id]
-	
-	
-	
   end
   
   def displayPrivateMembers()
@@ -84,10 +71,14 @@ class Raspbuddies
   
   def bcast
 	private_members.each do |m|
-# 	  i_send <+ [[m.ident, [ip_port, [@qvc, @entries, ip_port], "Hello from " << ip_port, "" ]]]
-	  my_msg <~ [[m.ident, [ip_port, "", "Hello from " << ip_port, "" ]]]
-	  stdio <~ i_send {|s| [["#{s}"]]}
-
+	  my_msg <~ [[m.ident, [ip_port, [@qvc, @entries, @id], "Hello from " << ip_port, "" ]]]
+	  stdio <~ my_msg {|i| [["cccccccccccccccccccccccc #{m.ident} | #{i[1][1]}"]]}
+	  i_send <+ my_msg { |i| [ m.ident, i[1][1] ]}
+	  
+	  pipe_in <= i_send { |i|  [i.dst, ip_port, i.payload, i.payload] }
+	  
+	  stdio <~ pipe_in { |p| [["PPPPPPPPPPPPPPPIIIIIIIIIIIIIIPPPPPPPPPPPPPEEEEEEEEEEEEEIIIIIIIIIIINNNNNNNNNNNNNN #{p}"]] }
+	  
 	end
   end
   
@@ -101,9 +92,8 @@ class Raspbuddies
     
   #method to send a message
   def sendMsg() 
-# 	  mcast <~ [[@server, [ip_port, "", "Hello from " << ip_port, "" ]]]
-# 	  mcast_send <+ [[2, "cc"]]
 	  bcast
+	  sleep(1)
 	  stdio <~ [["Sending a message..."]]
   end
   
@@ -120,7 +110,6 @@ class Raspbuddies
   end
   
   def stopProcess
-# 	@mc.stop
 	stop
   end
   
@@ -135,7 +124,6 @@ else
   puts "------------------------------------------"
   puts "                Run Client"
   puts "  Server address: #{server}"
-  # # puts "  Private ip : #{Socket.ip_address_list.detect{|intf| intf.ipv4_private?}.ip_address}"
   puts "------------------------------------------"
 
   program = Raspbuddies.new(ARGV[0], ARGV[1], server, :stdin => $stdin )
@@ -155,8 +143,7 @@ else
 	end
 	
 	sleep 10
-	
-	
+
   puts "------------------------------------------"
   puts "                   End"
   puts "------------------------------------------"

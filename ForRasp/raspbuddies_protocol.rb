@@ -33,9 +33,6 @@ module RaspbuddiesProtocol
 	
 #     table :nodelist #Contains all clients information
     channel :new_client
-	
-	
-	interface input, :i_send, [:dst] => [:payload]
   end
 
   DEFAULT_ADDR = "localhost:12346" # to modify with the real server ip
