@@ -4,29 +4,29 @@ require 'backports'
 require_relative './raspbuddies_protocol'
 require_relative './delivery/QCDelivery'
 require_relative './lattice/LQVC'
+require_relative './HashModule'
 
 class Raspbuddies
   include Bud
   include RaspbuddiesProtocol
   include QCDelivery
+  include HashFunctions
    
-  
   state do
-    interface input, :i_send, [:dst] => [:payload]
+    interface input, :i_send, [:ident] => [:payload]
   end
   
-  def initialize(id, k, server, opts={})
+  def initialize(id, server, opts={})
     @id = id
-	@entries = k
     @server = server
-	@qvc = {  0 => 0,
-			  1 => 0,
-			  2 => 0}	
+	@cpt = 0
     super opts
   end
   
   bootstrap do	
+	@entries = hashKey(ip_port)
     connect <~ [[@server, ip_port, @id]]
+	puts "Entries : #{@entries}"
   end
   
   ############################################################################
@@ -35,12 +35,13 @@ class Raspbuddies
   
   # Receive a message
   bloom :rcv do 
-	stdio <~ mcast { |m| [["LOG received message #{logIntoFile(m.val)}" ]] if m.val[0]!=ip_port} # don't log if we are the msg sender
-	stdio <~ pipe_out
-  end
+	stdio <~ chn { |m| [["LOG received message #{logIntoFile(m.payload)}" ]]} # don't log if we are the msg sender
+	stdio <~ buf_chosen { |p| [[" ploploplop #{p}"]]}
+  end 
   
   bloom :snd do
-	mcast <~ (my_msg * private_members).pairs { |m,n| [n.ident, m.val] }
+	pipe_in <=(i_send * private_members).pairs{ |i,n|  [n.ident, ip_port, i.ident, i.payload] }
+	stdio <~ i_send {|i| [["I_SEND : #{i}"]]}
   end
   
   # New clients detected by central server
@@ -70,16 +71,10 @@ class Raspbuddies
   end
   
   def bcast
-	private_members.each do |m|
-	  my_msg <~ [[m.ident, [ip_port, [@qvc, @entries, @id], "Hello from " << ip_port, "" ]]]
-	  stdio <~ my_msg {|i| [["cccccccccccccccccccccccc #{m.ident} | #{i[1][1]}"]]}
-	  i_send <+ my_msg { |i| [ m.ident, i[1][1] ]}
-	  
-	  pipe_in <= i_send { |i|  [i.dst, ip_port, i.payload, i.payload] }
-	  
-	  stdio <~ pipe_in { |p| [["PPPPPPPPPPPPPPPIIIIIIIIIIIIIIPPPPPPPPPPPPPEEEEEEEEEEEEEIIIIIIIIIIINNNNNNNNNNNNNN #{p}"]] }
-	  
-	end
+	  @cpt += 1
+	  stdio <~ [["Sending a msg..."]]
+	  i_send <+ [[ ip_port << @cpt.to_s, "plop"]]	  
+	  sleep(1)
   end
   
   # Log a message into the file log.
@@ -89,25 +84,6 @@ class Raspbuddies
 				f.write("\n")  }
     return  msg 	
   end
-    
-  #method to send a message
-  def sendMsg() 
-	  bcast
-	  sleep(1)
-	  stdio <~ [["Sending a message..."]]
-  end
-  
-  def sendMsg2(wait_time)
-	return [@server, [ip_port, "", "Hello from " << ip_port, "" ]]
-  end
-  
-  def to_QVC(m_qvv)
-    qvv= Bud::MapLattice.new
-    m_qvv.each { |key,val|
-      qvv= qvv.merge( Bud::MapLattice.new({key=>Bud::MaxLattice.new(val)}))
-    }
-    return qvv
-  end
   
   def stopProcess
 	stop
@@ -115,8 +91,8 @@ class Raspbuddies
   
 end
 
-if(ARGV.length < 2)
-  puts "Client must be launch with ARGV[0]:id, ARGV[1]:k entries"
+if(ARGV.length < 1)
+  puts "Client must be launch with ARGV[0]:id"
 else
   server = (ARGV.length == 3) ? ARGV[2] : RaspbuddiesProtocol::DEFAULT_ADDR
 	  
@@ -126,7 +102,7 @@ else
   puts "  Server address: #{server}"
   puts "------------------------------------------"
 
-  program = Raspbuddies.new(ARGV[0], ARGV[1], server, :stdin => $stdin )
+  program = Raspbuddies.new(ARGV[0], server, :stdin => $stdin )
 
   program.run_bg
 
@@ -137,7 +113,7 @@ else
 	
 	while nbMessage!=0 do
 	  program.sync_do{
-		  program.sendMsg()
+		  program.bcast
 	  }
 	  nbMessage -= 1
 	end

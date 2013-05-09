@@ -27,6 +27,16 @@ class LQVC < Bud::Lattice
   ## Only one of these QVC has entries set up
   def merge(o)
 
+    ## identity element check
+    if (@v[1].length==0 && (@v[0].nil? || @v[0].size.reveal==0))
+      return LQVC.new(Array.new([o.v[0],Set.new]))
+    end
+
+    if (o.v[1].length==0 && (o.v[0].nil? || o.v[0].size.reveal==0))
+      return LQVC.new(Array.new([@v[0],Set.new]))
+    end
+
+    ## a message contains a non empty v[0]
     if (@v[1].length==0 && o.v[1].length==0)
       tempQVC = @v[0].merge(o.v[0])
     else
@@ -50,9 +60,6 @@ class LQVC < Bud::Lattice
       end
     }
 
-# puts "===result==="
-# puts tempQVC.reveal
-
     return LQVC.new(Array.new([tempQVC,Set.new]))
   end
 
@@ -64,11 +71,11 @@ class LQVC < Bud::Lattice
     #puts qvc.v[0].reveal
 
     return Bud::BoolLattice.new(false) if qvc.v[1].any?{ |i|
-      @v[0].at(i,Bud::MaxLattice).merge(Bud::MaxLattice.new(0)).reveal <
+      @v[0].at(i,Bud::MaxLattice).merge(Bud::MaxLattice.new(0)).reveal < 
       qvc.v[0].at(i,Bud::MaxLattice).merge(Bud::MaxLattice.new(0)).reveal - 1
     }
 
-    return Bud::BoolLattice.new(false) if
+    return Bud::BoolLattice.new(false) if 
       (Set.new(qvc.v[0].key_set().reveal)-(qvc.v[1]|k)).any?{ |i|
       @v[0].at(i,Bud::MaxLattice).merge(Bud::MaxLattice.new(0)).reveal <
       qvc.v[0].at(i,Bud::MaxLattice).merge(Bud::MaxLattice.new(0)).reveal
@@ -108,4 +115,8 @@ class LQVC < Bud::Lattice
   end
 
 end
+
+
+
+
 
