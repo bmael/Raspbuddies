@@ -1,0 +1,14 @@
+require_relative '../raspbuddies'
+
+
+i = 0
+while true do
+
+  server = (ARGV.length == 2) ? ARGV[1] : RaspbuddiesProtocol::DEFAULT_ADDR
+  puts "Server address: #{server}"
+  program = Raspbuddies.new(i, server, :stdin => $stdin )
+  i += 1
+  puts "starting process : #{i}"
+  program.run_bg
+  
+end

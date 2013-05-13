@@ -1,0 +1,111 @@
+require 'rubygems'
+require 'bud'
+require 'set'
+
+class LQVC < Bud::Lattice
+  wrapper_name :lqvc
+
+  #v[0] QVC
+  #v[1] K
+  attr :v
+
+  def initialize( i=[Bud::MapLattice.new({}),Set.new()])
+      reject_input(i) unless i.kind_of? Array
+      reject_input(i) unless i[1].kind_of? Set # K
+      reject_input(i) unless i[0].kind_of? Bud::Lattice # lmap
+      reject_input(i) unless i[0].key_set.reveal.all?{
+        |k| i[0].at(k).kind_of? Bud::Lattice } # lmax
+
+    @v= Array.new
+
+    @v[0] = i[0]
+    @v[1] = i[1]
+  end
+
+
+  ## Preserve dominant entries, only they entry marked by K can be modified
+  ## Only one of these QVC has entries set up
+  def merge(o)
+
+    if (@v[1].length==0 && o.v[1].length==0)
+      tempQVC = @v[0].merge(o.v[0])
+    else
+      if (@v[1].length==0)
+        tempQVC = @v[0]
+      end
+      if (o.v[1].length==0)
+        tempQVC = o.v[0]
+      end
+    end
+
+    (@v[1] | (o.v[1])).each { |i|
+      if (@v[1].length==0)
+        tempQVC = tempQVC.merge(Bud::MapLattice.new({i=>o.v[0].at(i)})) unless(
+        @v[0].at(i,Bud::MaxLattice).merge(Bud::MaxLattice.new(0)).reveal !=
+        (o.v[0].at(i,Bud::MaxLattice).merge(Bud::MaxLattice.new(0)).reveal-1))
+      else
+        tempQVC = tempQVC.merge(Bud::MapLattice.new({i=>v[0].at(i)})) unless(
+        (o.v[0].at(i,Bud::MaxLattice).merge(Bud::MaxLattice.new(0)).reveal)!=
+        (@v[0].at(i,Bud::MaxLattice).merge(Bud::MaxLattice.new(0)).reveal-1))
+      end
+    }
+
+# puts "===result==="
+# puts tempQVC.reveal
+
+    return LQVC.new(Array.new([tempQVC,Set.new]))
+  end
+
+  # check if lower or equal; or causally ready
+  # False => True
+  # k are local entries
+  # qvc contains the k entries of msg
+  monotone :rdy do |qvc,k|
+    #puts qvc.v[0].reveal
+
+    return Bud::BoolLattice.new(false) if qvc.v[1].any?{ |i|
+      @v[0].at(i,Bud::MaxLattice).merge(Bud::MaxLattice.new(0)).reveal <
+      qvc.v[0].at(i,Bud::MaxLattice).merge(Bud::MaxLattice.new(0)).reveal - 1
+    }
+
+    return Bud::BoolLattice.new(false) if
+      (Set.new(qvc.v[0].key_set().reveal)-(qvc.v[1]|k)).any?{ |i|
+      @v[0].at(i,Bud::MaxLattice).merge(Bud::MaxLattice.new(0)).reveal <
+      qvc.v[0].at(i,Bud::MaxLattice).merge(Bud::MaxLattice.new(0)).reveal
+    }
+
+    return Bud::BoolLattice.new(true)
+
+  end
+
+  # check if qvc lower or equal
+  monotone :isLeq do |qvc|
+    return Bud::BoolLattice.new(false) if qvc.v[0].reveal.any?{ |k,val|
+     @v[0].at(k,Bud::MaxLattice).merge(Bud::MaxLattice.new(0)).reveal <
+     val.reveal
+    }
+
+    return Bud::BoolLattice.new(true)
+  end
+
+
+  # Prepare next QVC
+  # k entries to increment
+  morph :next_qvc do |k|
+    tempQVC = @v[0]
+
+    k.each do |i|
+      valTemp = @v[0].at(i,Bud::MaxLattice).merge(Bud::MaxLattice.new(0)) + 1
+      tempQVC = tempQVC.merge( Bud::MapLattice.new({i=>valTemp}))
+    end
+    
+    return LQVC.new(Array.new([tempQVC,Set.new(k)]))
+  end
+
+
+  morph :qvc do
+    return @v[0]
+  end
+
+end
+
